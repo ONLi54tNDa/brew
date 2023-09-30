@@ -522,10 +522,19 @@ module Homebrew
           .join(" ")
       end
 
-      sockets_hash = if @sockets.present?
-        @sockets.transform_values do |info|
-          "#{info[:type]}://#{info[:host]}:#{info[:port]}"
-        end
+      sockets_var = if @sockets.present?
+        @sockets.transform_values { |info| "#{info[:type]}://#{info[:host]}:#{info[:port]}" }
+                .then do |sockets_hash|
+                  # TODO: Remove this code when all users are running on versions of Homebrew
+                  # that can process sockets hashes (this commit or later).
+                  if sockets_hash.size == 1 && sockets_hash.key?(:listeners)
+                    # When original #sockets argument was a string: `sockets "127.0.0.1:80"`
+                    sockets_hash.fetch(:listeners)
+                  else
+                    # When original #sockets argument was a hash: `sockets http: "tcp://0.0.0.0:80"`
+                    sockets_hash
+                  end
+                end
       end
 
       {
@@ -546,7 +555,7 @@ module Homebrew
         restart_delay:         @restart_delay,
         process_type:          @process_type,
         macos_legacy_timers:   @macos_legacy_timers,
-        sockets:               sockets_hash,
+        sockets:               sockets_var,
       }.compact
     end
 
