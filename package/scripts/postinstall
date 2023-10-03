@@ -3,7 +3,7 @@
 # $2 Location of the Homebrew installation we may need to move into place
 # $3 Target install location (unused)
 # $4 System root directory (unused)
-set -eu
+set -euo pipefail
 
 # disable analytics while installing
 export HOMEBREW_NO_ANALYTICS_THIS_RUN=1
@@ -26,14 +26,14 @@ cd "${homebrew_directory}"
 git config --global --add safe.directory "${homebrew_directory}"
 git reset --hard
 git checkout --force master
-git branch | grep -v '\*' | xargs -n 1 git branch --delete --force
+git branch | grep -v '\*' | xargs -n 1 git branch --delete --force || true
 git config --global --unset safe.directory "${homebrew_directory}"
 
 # move to /usr/local if on x86_64
 if [[ $(uname -m) == "x86_64" ]]
 then
   sudo mkdir -vp /usr/local/bin /usr/local/Homebrew
-  cp -a "${homebrew_directory}"/* "${homebrew_directory}/".??* "/usr/local/Homebrew/"
+  cp -pR "${homebrew_directory}"/* "${homebrew_directory}/".??* "/usr/local/Homebrew/"
 
   # create symlink to /usr/local/bin/brew
   ln -svf "../Homebrew/bin/brew" "/usr/local/bin/brew"
